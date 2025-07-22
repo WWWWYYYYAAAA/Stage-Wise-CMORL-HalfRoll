@@ -356,6 +356,7 @@ class Env(VecTask):
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(0.0, 0.0, 0.0)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        # start_pose.r = gymapi.Quat(1.0, 0.0, 0.0, 0.0)
         self.robot_handles = []
         self.env_handles = []
         for i in range(self.num_envs):

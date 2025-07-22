@@ -356,6 +356,7 @@ class Env(VecTask):
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(0.0, 0.0, 0.0)
         start_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        # start_pose.r = gymapi.Quat(1.0, 0.0, 0.0, 0.0)
         self.robot_handles = []
         self.env_handles = []
         for i in range(self.num_envs):
@@ -487,7 +488,7 @@ class Env(VecTask):
         self.stage_buf[env_ids, 0] = 1.0
         self.is_half_turn_buf[env_ids] = 0
         self.is_one_turn_buf[env_ids] = 0
-        self.start_time_buf[env_ids] = torch_utils.torch_rand_float(0.0, 5.0, (len(env_ids), 1), device=self.device).squeeze()
+        self.start_time_buf[env_ids] = torch_utils.torch_rand_float(0.0, 1.0, (len(env_ids), 1), device=self.device).squeeze() #creepy delay
         for i in range(len(self.lag_joint_target_buffer)):
             self.lag_joint_target_buffer[i][env_ids, :] = self.joint_targets[env_ids]
         for i in range(len(self.lag_imu_buffer)):
@@ -605,25 +606,28 @@ class Env(VecTask):
             self.randomize()
         # ============================= #
 
-        # stage 0: stand, stage 1: sit, stage 2: roll_half, stage 3: roll_full, stage 4: recover
+        # stage 0: lie, stage 1: sideway, stage 2: roll_half, stage 3: roll_full, stage 4: recover
         # =================== calculate rewards =================== #
         # com height
         com_height = self.base_positions[:, 2]
-        self.rew_buf[:, 0] =  self.stage_buf[:, 0]*(-torch.abs(com_height - 0.35))
-        self.rew_buf[:, 0] += self.stage_buf[:, 1]*(-torch.abs(com_height - 0.1))
+        self.rew_buf[:, 0] =  self.stage_buf[:, 0]*(-torch.clamp(com_height - 0.2, min=0.0))
+        self.rew_buf[:, 0] += self.stage_buf[:, 1]*(-torch.abs(com_height - 0.15))*5
         self.rew_buf[:, 0] += self.stage_buf[:, 2]*(-torch.clamp(com_height - 0.2, min=0.0))
         self.rew_buf[:, 0] += self.stage_buf[:, 3]*(-torch.clamp(com_height - 0.2, min=0.0))
         self.rew_buf[:, 0] += self.stage_buf[:, 4]*(-torch.abs(com_height - 0.35))
         # body balance
         body_z = torch_utils.quat_rotate_inverse(self.base_quaternions, self.world_z)
-        self.rew_buf[:, 1] =  self.stage_buf[:, 0]*(-torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)))
-        self.rew_buf[:, 1] += self.stage_buf[:, 1]*(-torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)))
+        self.rew_buf[:, 1] =  self.stage_buf[:, 0]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
+        self.rew_buf[:, 1] += self.stage_buf[:, 1]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
         self.rew_buf[:, 1] += self.stage_buf[:, 2]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
         self.rew_buf[:, 1] += self.stage_buf[:, 3]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
         self.rew_buf[:, 1] += self.stage_buf[:, 4]*(-torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)))
         # rotation angle
         self.rew_buf[:, 2] =  self.stage_buf[:, 0]*(0.0)
         self.rew_buf[:, 2] += self.stage_buf[:, 1]*(0.0)
+        # roll_angles = torch.arccos(torch.clamp(-body_z[:, 2], -1.0, 1.0)) # target: (0, 0, -1)
+        # masks = torch.logical_or(body_z[:, 1] > 0, torch.abs(roll_angles) < np.pi/8.0).type(torch.float)
+        # self.rew_buf[:, 2] += self.stage_buf[:, 1]*(-masks*roll_angles + (1.0 - masks)*(roll_angles - 2.0*np.pi))
         roll_angles = torch.arccos(torch.clamp(-body_z[:, 2], -1.0, 1.0)) # target: (0, 0, -1)
         masks = torch.logical_or(body_z[:, 1] > 0, torch.abs(roll_angles) < np.pi/6.0).type(torch.float)
         self.rew_buf[:, 2] += self.stage_buf[:, 2]*(-masks*roll_angles + (1.0 - masks)*(roll_angles - 2.0*np.pi))
@@ -664,7 +668,7 @@ class Env(VecTask):
         calf_contact_forces = self.contact_forces[:, self.calf_indices, :]
         foot_contact = ((torch.norm(foot_contact_forces, dim=2) > 10.0)|(torch.norm(calf_contact_forces, dim=2) > 10.0)).type(torch.float)
         self.cost_buf[:, 0] =  self.stage_buf[:, 0]*(foot_contact_threshold)
-        self.cost_buf[:, 0] += self.stage_buf[:, 1]*(1.0 - foot_contact.mean(dim=-1))
+        self.cost_buf[:, 0] += self.stage_buf[:, 1]*(foot_contact_threshold)
         self.cost_buf[:, 0] += self.stage_buf[:, 2]*(foot_contact_threshold)
         self.cost_buf[:, 0] += self.stage_buf[:, 3]*(foot_contact_threshold)
         self.cost_buf[:, 0] += self.stage_buf[:, 4]*(foot_contact_threshold)
@@ -672,7 +676,7 @@ class Env(VecTask):
         body_contact_threshold = 0.025
         term_contact = torch.any(torch.norm(self.contact_forces[:, self.terminate_touch_indices, :], dim=-1) > 1.0, dim=-1)
         undesired_contact = torch.any(torch.norm(self.contact_forces[:, self.undesired_touch_indices, :], dim=-1) > 1.0, dim=-1)
-        self.cost_buf[:, 1] =  self.stage_buf[:, 0]*torch.logical_or(term_contact, undesired_contact).type(torch.float)
+        self.cost_buf[:, 1] =  self.stage_buf[:, 0]*(body_contact_threshold)
         self.cost_buf[:, 1] += self.stage_buf[:, 1]*(body_contact_threshold)
         self.cost_buf[:, 1] += self.stage_buf[:, 2]*(body_contact_threshold)
         self.cost_buf[:, 1] += self.stage_buf[:, 3]*(body_contact_threshold)
@@ -700,14 +704,15 @@ class Env(VecTask):
         self.stage_buf[:, 2] = (1.0 - from2_to3)*self.stage_buf[:, 2]
         self.stage_buf[:, 3] = from2_to3 + (1.0 - from2_to3)*self.stage_buf[:, 3]
         from1_to2 = torch.logical_and(
-            self.stage_buf[:, 1] == 1.0, com_height <= 0.15).type(torch.float32)
+            self.stage_buf[:, 1] == 1.0, com_height >= 0.15).type(torch.float32)
+        # print("######", com_height)
         self.stage_buf[:, 1] = (1.0 - from1_to2)*self.stage_buf[:, 1]
         self.stage_buf[:, 2] = from1_to2 + (1.0 - from1_to2)*self.stage_buf[:, 2]
         from0_to1 = torch.logical_and(
             self.stage_buf[:, 0] == 1.0, torch.logical_and(
                 self.progress_buf*self.control_dt > self.start_time_buf, torch.logical_and(
-                    com_height >= 0.3, 
-                    self.is_half_turn_buf == 0
+                    com_height <= 0.1, 
+                    self.is_half_turn_buf == 1
                 )
             )
         ).type(torch.float32)
@@ -728,7 +733,7 @@ class Env(VecTask):
             self.stage_buf[:, 0] == 1.0, 
             torch.any(torch.norm(self.contact_forces[:, self.terminate_touch_indices, :], dim=-1) > 1.0, dim=-1))
         body_balances = torch.logical_and(self.stage_buf[:, 4] == 1.0, body_z[:, 2] < 0.5)
-        self.fail_buf[:] = torch.logical_or(body_contacts, body_balances).type(torch.long)
+        self.fail_buf[:] = torch.logical_or(body_balances, body_balances).type(torch.long)
 
         # calculate reset buffer
         self.reset_buf[:] = torch.where(

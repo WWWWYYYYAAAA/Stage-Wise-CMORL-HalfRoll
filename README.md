@@ -59,3 +59,19 @@ It is required to train a teacher poicy first, and then train a student policy u
 
 - training: `python main_student.py --task_cfg_path tasks/{task_name}.yaml --algo_cfg_path algos/student/{task_name}.yaml --wandb --seed 1`
 - test: `python main_student.py --task_cfg_path tasks/{task_name}.yaml --algo_cfg_path algos/student/{task_name}.yaml --test --render --seed 1 --model_num {saved_model_num}`
+
+
+### cmd-history
+```bash
+#half roll
+python main_teacher.py --task_cfg_path tasks/go1_halfroll.yaml --algo_cfg_path algos/comoppo/go1_halfroll.yaml --wandb --seed 1 --model_num 10000000
+python main_teacher.py --task_cfg_path tasks/go1_halfroll.yaml --algo_cfg_path algos/comoppo/go1_halfroll.yaml --wandb --seed 1 
+
+python main_teacher.py --task_cfg_path tasks/go1_halfroll.yaml --algo_cfg_path algos/comoppo/go1_halfroll.yaml --test --render --seed 1 --model_num 10000000
+
+#side roll
+python main_teacher.py --task_cfg_path tasks/go1_sideroll.yaml --algo_cfg_path algos/comoppo/go1_sideroll.yaml --wandb --seed 1 --model_num 10000000
+python main_teacher.py --task_cfg_path tasks/go1_sideroll.yaml --algo_cfg_path algos/comoppo/go1_sideroll.yaml --wandb --seed 1
+
+python main_teacher.py --task_cfg_path tasks/go1_sideroll.yaml --algo_cfg_path algos/comoppo/go1_sideroll.yaml --test --render --seed 1 --model_num 80000000
+```

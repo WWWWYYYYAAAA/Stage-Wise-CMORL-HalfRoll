@@ -1,9 +1,9 @@
 # used to create the object
-name: Go1Sideroll
+name: Go1Halfroll
 
 backup_files: [
-    'tasks/go1_sideroll.yaml',
-    'tasks/go1_sideroll.py',
+    'tasks/go1_halfroll.yaml',
+    'tasks/go1_halfroll.py',
 ]
 n_total_steps: 500000000
 
@@ -45,42 +45,42 @@ env:
         flip_visual_attachments: false
 
     default_joint_positions:
-        FL_hip_joint: 0.1       # [rad]
-        RL_hip_joint: 0.1       # [rad]
-        FR_hip_joint: -0.1      # [rad]
-        RR_hip_joint: -0.1      # [rad]
-        FL_thigh_joint: 0.8     # [rad]
-        RL_thigh_joint: 1.0     # [rad]
-        FR_thigh_joint: 0.8     # [rad]
-        RR_thigh_joint: 1.0     # [rad]
-        FL_calf_joint: -1.5     # [rad]
-        RL_calf_joint: -1.5     # [rad]
-        FR_calf_joint: -1.5     # [rad]
-        RR_calf_joint: -1.5     # [rad]
-
-    crawled_joint_positions:
         FL_hip_joint: 0.0       # [rad]
         RL_hip_joint: 0.0       # [rad]
-        FR_hip_joint: 0.0       # [rad]
-        RR_hip_joint: 0.0       # [rad]
-        FL_thigh_joint: 2.0     # [rad]
-        RL_thigh_joint: 2.0     # [rad]
-        FR_thigh_joint: 2.0     # [rad]
-        RR_thigh_joint: 2.0     # [rad]
+        FR_hip_joint: 0.0      # [rad]
+        RR_hip_joint: 0.0      # [rad]
+        FL_thigh_joint: 1.4     # [rad]
+        RL_thigh_joint: 1.4     # [rad]
+        FR_thigh_joint: 1.4     # [rad]
+        RR_thigh_joint: 1.4     # [rad]
+        FL_calf_joint: -2.5      # [rad]
+        RL_calf_joint: -2.5     # [rad]
+        FR_calf_joint: -2.5     # [rad]
+        RR_calf_joint: -2.5     # [rad]
+
+    crawled_joint_positions:
+        FL_hip_joint: 0.1       # [rad]
+        RL_hip_joint: 0.1       # [rad]
+        FR_hip_joint: -0.1       # [rad]
+        RR_hip_joint: -0.1       # [rad]
+        FL_thigh_joint: 2.6     # [rad]
+        RL_thigh_joint: 2.6     # [rad]
+        FR_thigh_joint: 2.6     # [rad]
+        RR_thigh_joint: 2.6     # [rad]
         FL_calf_joint: -2.5     # [rad]
         RL_calf_joint: -2.5     # [rad]
         FR_calf_joint: -2.5     # [rad]
         RR_calf_joint: -2.5     # [rad]
 
     init_base_pose:
-        pos: [0.0, 0.0, 0.34]       # x,y,z [m]
-        quat: [0.0, 0.0, 0.0, 1.0]   # x,y,z,w [quat]
+        pos: [0.0, 0.0, 0.07]       # x,y,z [m]
+        quat: [1.0, 0.0, 0.0, 0.0]   # x,y,z,w [quat]
         lin_vel: [0.0, 0.0, 0.0]    # x,y,z [m/s]
         ang_vel: [0.0, 0.0, 0.0]   # x,y,z [rad/s]
 
     control:
-        stiffness: 20.0  # P gain [N*m/rad]
-        damping: 0.5     # D gain [N*m*s/rad]
+        stiffness: 40.0  # P gain [N*m/rad]
+        damping: 1     # D gain [N*m*s/rad]
         ####################
         # action scale:
         # target angle = actionScale * action + defaultAngle
@@ -109,10 +109,10 @@ env:
             20.0, 20.0, 20.0, 
             20.0, 20.0, 20.0]
         joint_torque_upper: [
-            34.0, 34.0, 34.0, 
-            34.0, 34.0, 34.0, 
-            34.0, 34.0, 34.0, 
-            34.0, 34.0, 34.0]
+            34.0, 100.0, 34.0, 
+            34.0, 100.0, 34.0, 
+            34.0, 100.0, 34.0, 
+            34.0, 100.0, 34.0]
         ########################
         
     randomize:
