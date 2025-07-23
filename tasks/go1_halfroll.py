@@ -511,7 +511,7 @@ class Env(VecTask):
 
         # calculate commands
         commands = torch.zeros((len(env_ids), 3), dtype=torch.float32, device=self.device)
-        masks2 = (self.progress_buf[env_ids]*self.control_dt >= self.start_time_buf[env_ids] + 0.2).type(torch.float32)
+        masks2 = (self.progress_buf[env_ids]*self.control_dt >= self.start_time_buf[env_ids] + 1.0).type(torch.float32) #0.2
         masks1 = (1.0 - masks2)*(self.progress_buf[env_ids]*self.control_dt >= self.start_time_buf[env_ids]).type(torch.float32)
         masks0 = (self.progress_buf[env_ids]*self.control_dt < self.start_time_buf[env_ids]).type(torch.float32)
         commands[:, 0] = masks0
@@ -616,7 +616,7 @@ class Env(VecTask):
         self.rew_buf[:, 0] += self.stage_buf[:, 1]*(-torch.abs(com_height - 0.18))*10.0
         self.rew_buf[:, 0] += self.stage_buf[:, 2]*(-torch.clamp(com_height - 0.2, min=0.0))
         self.rew_buf[:, 0] += self.stage_buf[:, 3]*(-torch.clamp(com_height - 0.2, min=0.0))
-        self.rew_buf[:, 0] += self.stage_buf[:, 4]*(-torch.abs(com_height - 0.35))
+        self.rew_buf[:, 0] += self.stage_buf[:, 4]*(-torch.abs(com_height - 0.35))*5.0
         # body balance
         body_z = torch_utils.quat_rotate_inverse(self.base_quaternions, self.world_z)
         self.rew_buf[:, 1] =  self.stage_buf[:, 0]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
@@ -661,7 +661,7 @@ class Env(VecTask):
         style_penalty =  torch.square(self.dof_positions[:, :3] - self.crawled_dof_positions[:, :3]).mean(dim=-1)
         style_penalty += torch.square(self.dof_positions[:, 6:9] - self.crawled_dof_positions[:, 6:9]).mean(dim=-1)
         self.rew_buf[:, 5] += self.stage_buf[:, 3]*(-style_penalty)
-        self.rew_buf[:, 5] += self.stage_buf[:, 4]*(-torch.square(self.dof_positions - self.default_dof_positions).mean(dim=-1))
+        self.rew_buf[:, 5] += self.stage_buf[:, 4]*(-torch.square(self.dof_positions - self.default_dof_positions).mean(dim=-1))*2.0
         # ========================================================= #
         # ==================== calculate costs ==================== #
         # foot contact
@@ -760,7 +760,7 @@ class Env(VecTask):
 
         # calculate commands
         commands = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
-        masks2 = (self.progress_buf*self.control_dt >= self.start_time_buf + 0.2).type(torch.float32)
+        masks2 = (self.progress_buf*self.control_dt >= self.start_time_buf + 1.0).type(torch.float32) #0.2
         masks1 = (1.0 - masks2)*(self.progress_buf*self.control_dt >= self.start_time_buf).type(torch.float32)
         masks0 = (self.progress_buf*self.control_dt < self.start_time_buf).type(torch.float32)
         commands[:, 0] = masks0
