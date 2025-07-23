@@ -30,7 +30,7 @@ sim:
         contact_collection: 2
 
 env:
-    num_envs: 1000
+    num_envs: 10000
     env_spacing: 2.0
     history_len: 10
     enable_camera_sensors: False
@@ -45,28 +45,55 @@ env:
         flip_visual_attachments: false
 
     default_joint_positions:
-        FL_hip_joint: 0.0       # [rad]
-        RL_hip_joint: 0.0       # [rad]
-        FR_hip_joint: 0.0      # [rad]
-        RR_hip_joint: 0.0      # [rad]
-        FL_thigh_joint: 1.4     # [rad]
-        RL_thigh_joint: 1.4     # [rad]
-        FR_thigh_joint: 1.4     # [rad]
-        RR_thigh_joint: 1.4     # [rad]
-        FL_calf_joint: -2.5      # [rad]
-        RL_calf_joint: -2.5     # [rad]
-        FR_calf_joint: -2.5     # [rad]
-        RR_calf_joint: -2.5     # [rad]
-
-    crawled_joint_positions:
         FL_hip_joint: 0.1       # [rad]
         RL_hip_joint: 0.1       # [rad]
-        FR_hip_joint: -0.1       # [rad]
-        RR_hip_joint: -0.1       # [rad]
+        FR_hip_joint: -0.1      # [rad]
+        RR_hip_joint: -0.1      # [rad]
+        FL_thigh_joint: 0.8     # [rad]
+        RL_thigh_joint: 1.0     # [rad]
+        FR_thigh_joint: 0.8     # [rad]
+        RR_thigh_joint: 1.0     # [rad]
+        FL_calf_joint: -1.5      # [rad]
+        RL_calf_joint: -1.5     # [rad]
+        FR_calf_joint: -1.5     # [rad]
+        RR_calf_joint: -1.5     # [rad]
+    # default_joint_positions:
+    #     FL_hip_joint: 0.0       # [rad]
+    #     RL_hip_joint: 0.0       # [rad]
+    #     FR_hip_joint: 0.0      # [rad]
+    #     RR_hip_joint: 0.0      # [rad]
+    #     FL_thigh_joint: 1.4     # [rad]
+    #     RL_thigh_joint: 1.4     # [rad]
+    #     FR_thigh_joint: 1.4     # [rad]
+    #     RR_thigh_joint: 1.4     # [rad]
+    #     FL_calf_joint: -2.5      # [rad]
+    #     RL_calf_joint: -2.5     # [rad]
+    #     FR_calf_joint: -2.5     # [rad]
+    #     RR_calf_joint: -2.5     # [rad]
+
+    crawled_joint_positions:
+        FL_hip_joint: -0.05      # [rad]
+        RL_hip_joint: -0.05       # [rad]
+        FR_hip_joint: 0.05       # [rad]
+        RR_hip_joint: 0.05       # [rad]
         FL_thigh_joint: 2.6     # [rad]
         RL_thigh_joint: 2.6     # [rad]
         FR_thigh_joint: 2.6     # [rad]
         RR_thigh_joint: 2.6     # [rad]
+        FL_calf_joint: -2.5     # [rad]
+        RL_calf_joint: -2.5     # [rad]
+        FR_calf_joint: -2.5     # [rad]
+        RR_calf_joint: -2.5     # [rad]
+
+    s34_joint_positions:
+        FL_hip_joint: -0.2       # [rad]
+        RL_hip_joint: -0.2       # [rad]
+        FR_hip_joint: 0.2       # [rad]
+        RR_hip_joint: 0.2       # [rad]
+        FL_thigh_joint: 2.7     # [rad]
+        RL_thigh_joint: 2.7     # [rad]
+        FR_thigh_joint: 2.7     # [rad]
+        RR_thigh_joint: 2.7     # [rad]
         FL_calf_joint: -2.5     # [rad]
         RL_calf_joint: -2.5     # [rad]
         FR_calf_joint: -2.5     # [rad]
@@ -80,7 +107,7 @@ env:
 
     control:
         stiffness: 40.0  # P gain [N*m/rad]
-        damping: 1     # D gain [N*m*s/rad]
+        damping: 1.0     # D gain [N*m*s/rad]
         ####################
         # action scale:
         # target angle = actionScale * action + defaultAngle
@@ -109,14 +136,14 @@ env:
             20.0, 20.0, 20.0, 
             20.0, 20.0, 20.0]
         joint_torque_upper: [
-            34.0, 100.0, 34.0, 
-            34.0, 100.0, 34.0, 
-            34.0, 100.0, 34.0, 
-            34.0, 100.0, 34.0]
+            34.0, 34.0, 34.0, 
+            34.0, 34.0, 34.0, 
+            34.0, 34.0, 34.0, 
+            34.0, 34.0, 34.0]
         ########################
         
     randomize:
-        is_randomized               : false
+        is_randomized               : true
         rand_period_motor_strength_s: 5.0
         rand_period_gravity_s       : 5.0
         rand_range_body_mass        : [-1.0, 3.0]

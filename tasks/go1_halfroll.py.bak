@@ -143,6 +143,7 @@ class Env(VecTask):
         # check the robot tumbling
         self.is_half_turn_buf = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         self.is_one_turn_buf = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+        self.is_side_turn_buf = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
         self.start_time_buf = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
 
         # get gym state tensors
@@ -201,14 +202,19 @@ class Env(VecTask):
         # get default joint (DoF) position
         self.named_default_joint_positions = self.cfg["env"]["default_joint_positions"]
         self.named_crawled_joint_positions = self.cfg["env"]["crawled_joint_positions"]
+        self.named_s34_joint_positions = self.cfg["env"]["s34_joint_positions"]
         self.default_dof_positions = torch.zeros_like(
             self.dof_positions, dtype=torch.float32, device=self.device, requires_grad=False)
         self.crawled_dof_positions = torch.zeros_like(
             self.dof_positions, dtype=torch.float32, device=self.device, requires_grad=False)
+        self.s34_dof_positions = torch.zeros_like(
+            self.dof_positions, dtype=torch.float32, device=self.device, requires_grad=False)
+        # print("###########", self.dof_names)
         for i in range(self.num_actions):
             name = self.dof_names[i]
             self.default_dof_positions[:, i] = self.named_default_joint_positions[name]
             self.crawled_dof_positions[:, i] = self.named_crawled_joint_positions[name]
+            self.s34_dof_positions[:, i] = self.named_s34_joint_positions[name]
 
         # for inner variables
         self.world_x = torch.zeros(
@@ -489,8 +495,6 @@ class Env(VecTask):
         self.is_half_turn_buf[env_ids] = 0
         self.is_one_turn_buf[env_ids] = 0
         self.start_time_buf[env_ids] = torch_utils.torch_rand_float(0.0, 5.0, (len(env_ids), 1), device=self.device).squeeze() #creepy delay
-        if self.num_envs==1:
-            self.start_time_buf[env_ids] = 1.0
         for i in range(len(self.lag_joint_target_buffer)):
             self.lag_joint_target_buffer[i][env_ids, :] = self.joint_targets[env_ids]
         for i in range(len(self.lag_imu_buffer)):
@@ -613,7 +617,7 @@ class Env(VecTask):
         # com height
         com_height = self.base_positions[:, 2]
         self.rew_buf[:, 0] =  self.stage_buf[:, 0]*(-torch.clamp(com_height - 0.2, min=0.0))
-        self.rew_buf[:, 0] += self.stage_buf[:, 1]*(-torch.abs(com_height - 0.18))*10.0
+        self.rew_buf[:, 0] += self.stage_buf[:, 1]*(-torch.abs(com_height - 0.18))*10
         self.rew_buf[:, 0] += self.stage_buf[:, 2]*(-torch.clamp(com_height - 0.2, min=0.0))
         self.rew_buf[:, 0] += self.stage_buf[:, 3]*(-torch.clamp(com_height - 0.2, min=0.0))
         self.rew_buf[:, 0] += self.stage_buf[:, 4]*(-torch.abs(com_height - 0.35))
@@ -623,7 +627,7 @@ class Env(VecTask):
         self.rew_buf[:, 1] += self.stage_buf[:, 1]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
         self.rew_buf[:, 1] += self.stage_buf[:, 2]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
         self.rew_buf[:, 1] += self.stage_buf[:, 3]*(-torch.abs(torch.arccos(torch.clamp(body_z[:, 0], -1.0, 1.0)) - np.pi/2.0))
-        self.rew_buf[:, 1] += self.stage_buf[:, 4]*(-torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)))*5.0
+        self.rew_buf[:, 1] += self.stage_buf[:, 4]*(-torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)))*10
         # rotation angle
         self.rew_buf[:, 2] =  self.stage_buf[:, 0]*(0.0)
         self.rew_buf[:, 2] += self.stage_buf[:, 1]*(0.0)
@@ -631,10 +635,10 @@ class Env(VecTask):
         # masks = torch.logical_or(body_z[:, 1] > 0, torch.abs(roll_angles) < np.pi/8.0).type(torch.float)
         # self.rew_buf[:, 2] += self.stage_buf[:, 1]*(-masks*roll_angles + (1.0 - masks)*(roll_angles - 2.0*np.pi))
         roll_angles = torch.arccos(torch.clamp(-body_z[:, 2], -1.0, 1.0)) # target: (0, 0, -1)
-        masks = torch.logical_or(body_z[:, 1] > 0, torch.abs(roll_angles) < np.pi/6.0).type(torch.float)
+        masks = torch.logical_or(body_z[:, 1] > 0, torch.abs(roll_angles) < np.pi/4.0).type(torch.float)
         self.rew_buf[:, 2] += self.stage_buf[:, 2]*(-masks*roll_angles + (1.0 - masks)*(roll_angles - 2.0*np.pi))
         roll_angles = torch.arccos(torch.clamp(body_z[:, 2], -1.0, 1.0)) # target: (0, 0, 1)
-        masks = torch.logical_or(body_z[:, 1] <= 0, torch.abs(roll_angles) < np.pi/6.0).type(torch.float)
+        masks = torch.logical_or(body_z[:, 1] <= 0, torch.abs(roll_angles) < np.pi/4.0).type(torch.float)
         self.rew_buf[:, 2] += self.stage_buf[:, 3]*(-masks*roll_angles + (1.0 - masks)*(roll_angles - 2.0*np.pi))
         self.rew_buf[:, 2] += self.stage_buf[:, 4]*(0.0)
         # base vel
@@ -648,8 +652,8 @@ class Env(VecTask):
         self.rew_buf[:, 3] =  self.stage_buf[:, 0]*(-vel_penalty)
         self.rew_buf[:, 3] += self.stage_buf[:, 1]*(-vel_penalty)
         self.rew_buf[:, 3] += self.stage_buf[:, 2]*((base_ang_vel_x < 4.0*np.pi).type(torch.float)*base_ang_vel_x)
-        self.rew_buf[:, 3] += self.stage_buf[:, 3]*((base_ang_vel_x < 4.0*np.pi).type(torch.float)*base_ang_vel_x)
-        self.rew_buf[:, 3] += self.stage_buf[:, 4]*(-vel_penalty)
+        self.rew_buf[:, 3] += self.stage_buf[:, 3]*((base_ang_vel_x < 4.0*np.pi).type(torch.float)*base_ang_vel_x)*5.0
+        self.rew_buf[:, 3] += self.stage_buf[:, 4]*(-vel_penalty)*5.0
         # energy
         self.rew_buf[:, 4] = -torch.square(self.dof_torques).mean(dim=-1)
         # style
@@ -660,7 +664,11 @@ class Env(VecTask):
         self.rew_buf[:, 5] += self.stage_buf[:, 2]*(-style_penalty)
         style_penalty =  torch.square(self.dof_positions[:, :3] - self.crawled_dof_positions[:, :3]).mean(dim=-1)
         style_penalty += torch.square(self.dof_positions[:, 6:9] - self.crawled_dof_positions[:, 6:9]).mean(dim=-1)
-        self.rew_buf[:, 5] += self.stage_buf[:, 3]*(-style_penalty)
+        self.is_side_turn_buf = (body_z[:, 1] >= 0.8)*1.0
+        # print(body_z[:, 1])
+        # print(self.dof_positions)
+        self.rew_buf[:, 5] += self.stage_buf[:, 3]*((-torch.square(self.dof_positions - self.s34_dof_positions).mean(dim=-1))*5.0*self.is_side_turn_buf + \
+                                                    (1.0-self.is_side_turn_buf)*(-style_penalty))
         self.rew_buf[:, 5] += self.stage_buf[:, 4]*(-torch.square(self.dof_positions - self.default_dof_positions).mean(dim=-1))
         # ========================================================= #
         # ==================== calculate costs ==================== #
@@ -682,7 +690,7 @@ class Env(VecTask):
         self.cost_buf[:, 1] += self.stage_buf[:, 1]*(body_contact_threshold)
         self.cost_buf[:, 1] += self.stage_buf[:, 2]*(body_contact_threshold)
         self.cost_buf[:, 1] += self.stage_buf[:, 3]*(body_contact_threshold)
-        self.cost_buf[:, 1] += self.stage_buf[:, 4]*(torch.logical_or(term_contact, undesired_contact).type(torch.float))
+        self.cost_buf[:, 1] += self.stage_buf[:, 4]*(body_contact_threshold)
         # joint pos
         self.cost_buf[:, 2] = torch.mean((
             (self.dof_positions < self.dof_pos_lower_limits)|(self.dof_positions > self.dof_pos_upper_limits)
