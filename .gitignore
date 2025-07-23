@@ -10,5 +10,8 @@ args.txt
 __pycache__
 wandb
 model
-results
+model/logs
+model/obs_scale
+model/reward_scale
+model/state_scale
 .vscode
