@@ -661,7 +661,7 @@ class Env(VecTask):
         style_penalty =  torch.square(self.dof_positions[:, :3] - self.crawled_dof_positions[:, :3]).mean(dim=-1)
         style_penalty += torch.square(self.dof_positions[:, 6:9] - self.crawled_dof_positions[:, 6:9]).mean(dim=-1)
         self.rew_buf[:, 5] += self.stage_buf[:, 3]*(-style_penalty)
-        self.rew_buf[:, 5] += self.stage_buf[:, 4]*(-torch.square(self.dof_positions - self.default_dof_positions).mean(dim=-1))*2.0
+        self.rew_buf[:, 5] += self.stage_buf[:, 4]*(-torch.square(self.dof_positions - self.default_dof_positions).mean(dim=-1))*10.0
         # ========================================================= #
         # ==================== calculate costs ==================== #
         # foot contact
